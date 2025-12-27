@@ -96,6 +96,10 @@ yearly AS (
     , SUM(total_cost) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm
     , SUM(total_cost_ex_fuel) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm_ex_fuel
 
+    -- load factor (RPM / ASM)
+    , SUM(rpms) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_load_factor
+    , (SUM(rpms) * 1.0 / NULLIF(SUM(ASMS), 0)) * 100 AS yearly_load_factor_pct
+
     -- premium revenue
     , SUM(premium_revenue) AS yearly_premium_revenue
 
@@ -154,6 +158,10 @@ SELECT
   , y.yearly_casm
   , y.yearly_casm_ex_fuel
 
+    -- load factor
+  , y.yearly_load_factor
+  , y.yearly_load_factor_pct
+
   -- premium and lost revenue
   , y.yearly_premium_revenue
   , y.yearly_lost_revenue
@@ -162,4 +170,3 @@ SELECT
   , y.yearly_yield
 FROM yearly y
 ORDER BY y.yr;
-
