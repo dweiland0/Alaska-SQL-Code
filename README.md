@@ -7,4 +7,5 @@ How to run
 1. Install DuckDB
 2. Save the Sample data as a csv file
 3. Upload to Duck DB as a table called:  ca_candidate_project_data
-4. Run the SQL Files 
+4. Alter column data types so that numerical values are stored as integer or double; month is stored as date.
+5. Run the SQL Files 
