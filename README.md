@@ -1,6 +1,6 @@
 Alaska Airlines BI Exercise
 
-This repo contains SQL used to compute various KPIs for my presentation.   I'm using Duck DB and am just trying to demonstrate that I can write SQL.     
+This repo contains SQL used to compute various KPIs for my presentation.   I'm using Duck DB to pull some summary metrics to be used in the presentation.     
 
 
 How to run
