@@ -1,150 +1,165 @@
 WITH base AS (
   SELECT
-    EXTRACT(year FROM MONTH)::INT AS yr,
+      EXTRACT(year FROM MONTH)::INT AS yr
 
-    ORIGIN,
-    DESTINATION,
-    AIRCRAFT,
+    , ORIGIN
+    , DESTINATION
+    , AIRCRAFT
 
-    -- counts / capacity
-    PASSENGERS,
-    FLIGHTS,
-    ASMS,
-    (PASSENGERS * MILES_DISTANCE) AS rpms,
+ 
+    , PASSENGERS
+    , FLIGHTS
+    , ASMS
+    , (PASSENGERS * MILES_DISTANCE) AS rpms
 
-    -- revenue components
-    (FIRST_CLASS_REVENUE + PREM_ECONOMY_REVENUE) AS premium_revenue,
-    (
-      FIRST_CLASS_REVENUE
-    + PREM_ECONOMY_REVENUE
-    + ECONOMY_REVENUE
-    + BAGGAGE_REVENUE
-    + OTHER_ANCILLARY_REVENUE
-    + FREIGHT_REVENUE
-    ) AS total_revenue,
+  
+    , (FIRST_CLASS_REVENUE + PREM_ECONOMY_REVENUE) AS premium_revenue
 
-    -- cost components
-    (
-      AIRCRAFT_OPERATION_COST
-    + AIRPORT_FEE_COST
-    + CREW_AND_LABOR_COST
-    + FUEL_COST
-    ) AS total_cost,
+    -- passenger revenue (EXCLUDES freight)
+    , (
+          FIRST_CLASS_REVENUE
+        + PREM_ECONOMY_REVENUE
+        + ECONOMY_REVENUE
+        + BAGGAGE_REVENUE
+        + OTHER_ANCILLARY_REVENUE
+      ) AS pax_revenue
 
-    (
-      AIRCRAFT_OPERATION_COST
-    + AIRPORT_FEE_COST
-    + CREW_AND_LABOR_COST
-    ) AS total_cost_ex_fuel,
+    -- total revenue (INCLUDES freight) 
+    , (
+          FIRST_CLASS_REVENUE
+        + PREM_ECONOMY_REVENUE
+        + ECONOMY_REVENUE
+        + BAGGAGE_REVENUE
+        + OTHER_ANCILLARY_REVENUE
+        + FREIGHT_REVENUE
+      ) AS total_revenue
 
-    -- per-row profit (for unprofitable flight counts)
-    (
-      (FIRST_CLASS_REVENUE
-     + PREM_ECONOMY_REVENUE
-     + ECONOMY_REVENUE
-     + BAGGAGE_REVENUE
-     + OTHER_ANCILLARY_REVENUE
-     + FREIGHT_REVENUE)
-    - (AIRCRAFT_OPERATION_COST
-     + AIRPORT_FEE_COST
-     + CREW_AND_LABOR_COST
-     + FUEL_COST)
-    ) AS profit
+ 
+    , (
+          AIRCRAFT_OPERATION_COST
+        + AIRPORT_FEE_COST
+        + CREW_AND_LABOR_COST
+        + FUEL_COST
+      ) AS total_cost
+
+    , (
+          AIRCRAFT_OPERATION_COST
+        + AIRPORT_FEE_COST
+        + CREW_AND_LABOR_COST
+      ) AS total_cost_ex_fuel
+
+
+    , (
+          (FIRST_CLASS_REVENUE
+         + PREM_ECONOMY_REVENUE
+         + ECONOMY_REVENUE
+         + BAGGAGE_REVENUE
+         + OTHER_ANCILLARY_REVENUE
+         + FREIGHT_REVENUE)
+        - (AIRCRAFT_OPERATION_COST
+         + AIRPORT_FEE_COST
+         + CREW_AND_LABOR_COST
+         + FUEL_COST)
+      ) AS profit
   FROM my_db.main.ca_candidate_project_data
+  --sanity checking below
+  ---WHERE 
+  --ORIGIN = 'OGG'
+  --  AND DESTINATION = 'HNL'
+  -- AND AIRCRAFT = 'A321'
 ),
+
 yearly AS (
   SELECT
-    yr,
+      yr
 
-    -- unique counts
-    COUNT(DISTINCT ORIGIN) AS unique_origin_cities,
-    COUNT(DISTINCT DESTINATION) AS unique_destination_cities,
-    COUNT(DISTINCT ORIGIN) + COUNT(DISTINCT DESTINATION) AS unique_cities_simple, -- if you want a single number
-    COUNT(DISTINCT (ORIGIN || '->' || DESTINATION)) AS unique_origin_destination_routes,
-    COUNT(DISTINCT (ORIGIN || '->' || DESTINATION || '|' || AIRCRAFT)) AS unique_od_aircraft_combinations,
-    COUNT(DISTINCT AIRCRAFT) AS unique_aircraft_types,
 
-    -- yearly totals
-    SUM(total_revenue) AS yearly_revenue,
-    SUM(total_cost) AS yearly_expenses,
-    SUM(PASSENGERS) AS yearly_passengers,
-    SUM(total_revenue) - SUM(total_cost) AS yearly_profitability,
+    , COUNT(DISTINCT ORIGIN) AS unique_origin_cities
+    , COUNT(DISTINCT DESTINATION) AS unique_destination_cities
+    , COUNT(DISTINCT ORIGIN) + COUNT(DISTINCT DESTINATION) AS unique_cities_simple
+    , COUNT(DISTINCT (ORIGIN || '->' || DESTINATION)) AS unique_origin_destination_routes
+    , COUNT(DISTINCT (ORIGIN || '->' || DESTINATION || '|' || AIRCRAFT)) AS unique_od_aircraft_combinations
+    , COUNT(DISTINCT AIRCRAFT) AS unique_aircraft_types
+
+
+    , SUM(total_revenue) AS yearly_revenue
+    , SUM(total_cost) AS yearly_expenses
+    , SUM(PASSENGERS) AS yearly_passengers
+    , SUM(total_revenue) - SUM(total_cost) AS yearly_profitability
 
     -- flight-level unprofitable share (weighted by FLIGHTS)
-    SUM(CASE WHEN profit < 0 THEN FLIGHTS ELSE 0 END) * 1.0 / NULLIF(SUM(FLIGHTS), 0) AS pct_yearly_unprofitable_flights,
+    , SUM(CASE WHEN profit < 0 THEN FLIGHTS ELSE 0 END) * 1.0
+        / NULLIF(SUM(FLIGHTS), 0) AS pct_yearly_unprofitable_flights
 
     -- unit economics
-    SUM(total_revenue) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_rasm,
-    SUM(total_cost) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm,
-    SUM(total_cost_ex_fuel) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm_ex_fuel,
+    , SUM(total_revenue) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_rasm
+    , SUM(total_cost) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm
+    , SUM(total_cost_ex_fuel) * 1.0 / NULLIF(SUM(ASMS), 0) AS yearly_casm_ex_fuel
 
-    -- premium revenue (absolute)
-    SUM(premium_revenue) AS yearly_premium_revenue,
+    -- premium revenue
+    , SUM(premium_revenue) AS yearly_premium_revenue
 
-    -- lost revenue proxy: flights with zero passengers valued at that row's revenue-per-ASM
-    SUM(
-      CASE
-        WHEN PASSENGERS = 0
-        THEN ASMS * (total_revenue * 1.0 / NULLIF(ASMS, 0))
-        ELSE 0
-      END
-    ) AS yearly_lost_revenue,
+    -- lost revenue (note that I'm using only passenger revenue - no freight)
+    , (SUM(pax_revenue) * 1.0 * SUM(ASMS) / NULLIF(SUM(rpms), 0))
+        - SUM(pax_revenue) AS yearly_lost_revenue
 
-    -- yield = revenue / RPM
-    SUM(total_revenue) * 1.0 / NULLIF(SUM(rpms), 0) AS yearly_yield
+    -- yield
+    , SUM(total_revenue) * 1.0 / NULLIF(SUM(rpms), 0) AS yearly_yield
   FROM base
   GROUP BY 1
 ),
+
 od_aircraft_yearly AS (
   SELECT
-    yr,
-    ORIGIN,
-    DESTINATION,
-    AIRCRAFT,
-    SUM(total_revenue) AS rev,
-    SUM(total_cost) AS cost
+      yr
+    , ORIGIN
+    , DESTINATION
+    , AIRCRAFT
+    , SUM(total_revenue) AS rev
+    , SUM(total_cost) AS cost
   FROM base
   GROUP BY 1,2,3,4
 )
+
 SELECT
-  y.yr,
+    y.yr
 
-  -- unique counts
-  y.unique_origin_cities,
-  y.unique_destination_cities,
-  y.unique_cities_simple,
-  y.unique_origin_destination_routes,
-  y.unique_od_aircraft_combinations,
-  y.unique_aircraft_types,
 
-  -- yearly totals
-  y.yearly_revenue,
-  y.yearly_expenses,
-  y.yearly_passengers,
-  y.yearly_profitability,
+  , y.unique_origin_cities
+  , y.unique_destination_cities
+  , y.unique_cities_simple
+  , y.unique_origin_destination_routes
+  , y.unique_od_aircraft_combinations
+  , y.unique_aircraft_types
 
-  -- % of yearly unprofitable OD-Aircraft combinations (unweighted, by combo count)
-  (
-    SELECT
-      COUNT(*) FILTER (WHERE rev < cost) * 1.0 / NULLIF(COUNT(*), 0)
-    FROM od_aircraft_yearly o
-    WHERE o.yr = y.yr
-  ) AS pct_yearly_unprofitable_od_aircraft_combinations,
 
-  -- % of yearly unprofitable flights (weighted by flight count)
-  y.pct_yearly_unprofitable_flights,
+  , y.yearly_revenue
+  , y.yearly_expenses
+  , y.yearly_passengers
+  , y.yearly_profitability
+
+  -- % of yearly unprofitable OD–Aircraft combinations
+  , (
+      SELECT
+        COUNT(*) FILTER (WHERE rev < cost) * 1.0 / NULLIF(COUNT(*), 0)
+      FROM od_aircraft_yearly o
+      WHERE o.yr = y.yr
+    ) AS pct_yearly_unprofitable_od_aircraft_combinations
+
+  -- % of yearly unprofitable flights
+  , y.pct_yearly_unprofitable_flights
 
   -- unit economics
-  y.yearly_rasm,
-  y.yearly_casm,
-  y.yearly_casm_ex_fuel,
+  , y.yearly_rasm
+  , y.yearly_casm
+  , y.yearly_casm_ex_fuel
 
   -- premium and lost revenue
-  y.yearly_premium_revenue,
-  y.yearly_lost_revenue,
+  , y.yearly_premium_revenue
+  , y.yearly_lost_revenue
 
   -- yield
-  y.yearly_yield
-
+  , y.yearly_yield
 FROM yearly y
 ORDER BY y.yr;
+
