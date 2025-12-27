@@ -1,4 +1,0 @@
--- Alter Month to Date
-ALTER TABLE my_db.main.ca_candidate_project_data
-    ALTER COLUMN MONTH SET DATA TYPE DATE
-    USING TRY_STRPTIME(CAST(MONTH AS VARCHAR), '%m-%d-%Y');
