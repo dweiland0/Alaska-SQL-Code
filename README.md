@@ -3,7 +3,7 @@ Alaska Airlines BI Exercise
 This repo contains SQL used to compute various KPIs for my presentation.   I'm using Duck DB to pull some summary metrics to be used in the presentation.     
 
 
-How to run
+How to run:
 1. Install DuckDB
 2. Save the Sample data as a csv file
 3. Upload to Duck DB as a table called:  ca_candidate_project_data
