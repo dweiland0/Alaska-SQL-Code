@@ -1,11 +1,11 @@
 Alaska Airlines BI Exercise
 
-Inventory of Contents of this Repository:
-Alaska Presentation_Weiland.pptx: The powerpoint presentation outlining the analysis completed on sample airline data.
-Yearly Summary Metrics: SQL used to pull summary metrics.
-CA_CANDIDATE_PROJECT_DATA.xlsx: Sample Data provided by recruitment
-CA_CANDIDATE_PROJECT_DATA_dave's working file.xlsx: This was the working file I used to understand the data and various KPIs I created to understand the business.
-Describe_Output.csv: stored output outlining column data types.
+• Alaska Presentation_Weiland.pptx: The powerpoint presentation outlining the analysis completed on sample airline data.
+• Yearly Summary Metrics: SQL used to pull summary metrics.
+• CA_CANDIDATE_PROJECT_DATA.xlsx: Sample Data provided by recruitment
+• CA_CANDIDATE_PROJECT_DATA_dave's working file.xlsx: This was the working file I used to understand the data and various KPIs I created to understand the business.
+• Describe_Output.csv: stored output outlining column data types.
+
 
 ---
 
